@@ -53,12 +53,14 @@ public struct SizeRotatingFileLogHandler: RotatingFileLogHandler {
     public func cleanup(max: UInt) {
         var maxRotationIndex: UInt = 0
         let rotatedLogs = getRotatedLogs()
+        guard rotatedLogs.count > 0 else { return }
+        
         for log in rotatedLogs {
             guard let ext = log.extension, let rotationIndex = UInt(ext) else { continue }
             maxRotationIndex = Swift.max(rotationIndex, maxRotationIndex)
         }
 
-        for index in (1..<maxRotationIndex).reversed() {
+        for index in (1...maxRotationIndex).reversed() {
             guard var log = rotatedLogs.first(where: { $0.extension ?? "" == "\(index)" }) else {
                 fatalError("Could not locate rotated log with index number: \(index)")
             }
@@ -82,9 +84,14 @@ public struct SizeRotatingFileLogHandler: RotatingFileLogHandler {
 
     private func getRotatedLogs() -> [FilePath] {
         do {
-            return try glob(pattern: "\(filename)\(fileExtension).*").matches.files
+            let pattern = logFile.absolute?.string ?? "\(filename)\(fileExtension)"
+            return try glob(pattern: "\(pattern).*").matches.files
         } catch {
-            fatalError("Failed to glob for rotated log files")
+            if let globError = error as? GlobError, globError == .noMatches {
+                return []
+            } else {
+                fatalError("Failed to glob for rotated log files")
+            }
         }
     }
 }
