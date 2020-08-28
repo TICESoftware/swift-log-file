@@ -3,6 +3,7 @@
 /Packages
 /*.xcodeproj
 /Package.resolved
+xcuserdata/
 
 *.sw[po]
 *.vimsession
